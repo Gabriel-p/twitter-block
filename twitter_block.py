@@ -72,14 +72,6 @@ def main():
     followerids = list(set(followerids) - set(blockedIDs))
     print("Non-blocked accounts: {}".format(len(followerids)))
 
-    # # Request user names
-    # if requestNames:
-    #     out_name = out_name.replace('IDs', 'names')
-    #     users = usersRequest(api, followerids, out_name)
-    # # Read names of followers to block
-    # with open(out_name, "r") as f:
-    #     users = f.read().split()
-
     # Blocking
     userBlock(api, followerids)
 
@@ -106,30 +98,6 @@ def IDsRequest(accountvar, api_call, out_name=None, sec_sleep=60):
             time.sleep(sec_sleep)
 
     return IDs
-
-
-# def usersRequest(api, followerids, out_name):
-#     """
-#     Make lookup requests for ids 100 at a time.
-#     """
-#     def chunks(lst, n=100):
-#         """Yield successive n-sized chunks from lst."""
-#         for i in range(0, len(lst), n):
-#             yield lst[i:i + n]
-
-#     with open(out_name, "w") as f:
-#         f.write('')
-
-#     Nt = len(followerids)
-#     print("Requesting {} user screen names...".format(Nt))
-#     for i, chunk in enumerate(chunks(followerids)):
-#         users_names = api.lookup_users(user_ids=chunk)
-#         if i % 100 == 0:
-#             print("{} ({:.2f}%)".format(i, 100 * (i * 100) / Nt))
-
-#         with open(out_name, "a") as f:
-#             for _ in users_names:
-#                 f.write(_.screen_name + '\n')
 
 
 def userBlock(api, users):
