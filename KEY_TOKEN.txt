@@ -1,0 +1,11 @@
+
+[api_token]
+# API Key
+consumer_key: "xxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+# API key secret
+consumer_secret: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+# Tokens. Make sure to generate these using Read & Write permissions
+access_token: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+access_token_secret: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"

@@ -1,17 +1,9 @@
 
 import sys
+import configparser
 from os.path import isfile
 import tweepy
 import time
-
-
-# API Key
-consumer_key = "xxxxxx"
-# API key secret
-consumer_secret = "xxxxxx"
-# Make sure to generate these using Read & Write permissions
-access_token = "xxxxxx"
-access_token_secret = "xxxxxx"
 
 
 def main():
@@ -20,25 +12,20 @@ def main():
 
     $ python twitter_block.py AccountName
 
-    The process is divided into 4 steps:
-
-    1. Download IDs already blocked by the issuing account
-    2. Download IDs for 'AccountName' (the one whose followers we are blocking)
-       Creates the "AccountName_IDs.txt" file (for account 'AccountName')
-    3. Remove IDs for those accounts that were already blocked
-    4. Block remaining accounts
-
-    * The IDs are downloaded 5000 per minute (~80-90 accounts/sec).
-    * The bocking step is the slowest (~2 accounts/sec). Thus the script
-    allows to stop the process at any time and re-start it later on using the
-    file generated. If you want to run the process from scratch, just
-    delete this file.
+    The script expect the keys and tokens in a separate 'KEY_TOKEN.txt' file.
 
     Sources:
     https://stackoverflow.com/q/31000178/1391441
     https://stackoverflow.com/a/17490816/1391441
 
     """
+    # Read keys & tokens
+    config = configparser.ConfigParser()
+    config.read("KEY_TOKEN.txt")
+    consumer_key = config.get("api_token", "consumer_key")
+    consumer_secret = config.get("api_token", "consumer_secret")
+    access_token = config.get("api_token", "access_token")
+    access_token_secret = config.get("api_token", "access_token_secret")
 
     # Passed as argument
     accountvar = sys.argv[1]

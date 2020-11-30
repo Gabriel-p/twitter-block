@@ -6,6 +6,9 @@ Usage:
 
     $ python twitter_block.py AccountName
 
+The script expect the keys and tokens in a separate 'KEY_TOKEN.txt' file.
+Requires the [Tweepy](https://www.tweepy.org/) library.
+
 The process is divided into 4 steps:
 
 1. Download IDs already blocked by the issuing account
