@@ -19,30 +19,18 @@ def main():
     https://stackoverflow.com/a/17490816/1391441
 
     """
-    # Read keys & tokens
-    config = configparser.ConfigParser()
-    config.read("KEY_TOKEN.txt")
-    consumer_key = config.get("api_token", "consumer_key")
-    consumer_secret = config.get("api_token", "consumer_secret")
-    access_token = config.get("api_token", "access_token")
-    access_token_secret = config.get("api_token", "access_token_secret")
-
-    # Passed as argument
-    accountvar = sys.argv[1]
-
-    auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
-    auth.set_access_token(access_token, access_token_secret)
-    # Make sure you have set wait_on_rate_limit to True while connecting
-    # through Tweepy
-    api = tweepy.API(
-        auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
-
+    api, accountvar = APIAccount()
     print("\nAccount whose followers to block: '{}'".format(accountvar))
 
     # Fetch accounts already blocked by the issuing account (to speed up the
     # process)
-    blockedIDs = IDsRequest(None, api.blocks_ids)
-    print("{} accounts blocked".format(len(blockedIDs)))
+    blocked_fname = "blocked_IDs.txt"
+    if not isfile(blocked_fname):
+        IDsRequest(None, api.blocks_ids, blocked_fname)
+    with open(blocked_fname, "r") as f:
+        blockedIDs = f.read().split()
+    blockedIDs = [int(_) for _ in blockedIDs]
+    print("{} accounts already blocked".format(len(blockedIDs)))
 
     # Request all the follower IDs for 'accountvar'
     out_name = "{}_IDs.txt".format(accountvar)
@@ -55,39 +43,58 @@ def main():
     followerids = [int(_) for _ in followerids]
     print("{} IDs requested".format(len(followerids)))
 
-    # Remove accounts already blocked
+    # Remove accounts that were already blocked
     followerids = list(set(followerids) - set(blockedIDs))
-    print("Non-blocked accounts: {}".format(len(followerids)))
+    print("{} non-blocked accounts".format(len(followerids)))
 
-    # Blocking
-    userBlock(api, followerids)
+    # Block non-blocked accounts
+    userBlock(api, followerids, blocked_fname)
 
 
-def IDsRequest(accountvar, api_call, out_name=None, sec_sleep=60):
+def APIAccount():
     """
-    Store follower ids from 'accountvar'.
+    Define API call and name of account whose followers to block.
     """
-    txt = 'blocked' if out_name is None else accountvar
-    print("Requesting {} IDs...".format(txt))
-    IDs = []
+    # Read keys & tokens
+    config = configparser.ConfigParser()
+    config.read("KEY_TOKEN.txt")
+    consumer_key = config.get("api_token", "consumer_key")
+    consumer_secret = config.get("api_token", "consumer_secret")
+    access_token = config.get("api_token", "access_token")
+    access_token_secret = config.get("api_token", "access_token_secret")
+
+    auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
+    auth.set_access_token(access_token, access_token_secret)
+    # Make sure you have set wait_on_rate_limit to True while connecting
+    # through Tweepy
+    api = tweepy.API(
+        auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
+
+    # Passed as argument
+    accountvar = sys.argv[1]
+
+    return api, accountvar
+
+
+def IDsRequest(accountvar, api_call, out_name, sec_sleep=60):
+    """
+    Store blocked accounts from the issuing account or follower ids from
+    'accountvar'.
+    """
+    print("Requesting IDs...")
     for page in tweepy.Cursor(
             api_call, screen_name=accountvar).pages():
-        if out_name is None:
-            IDs.extend([int(_) for _ in page])
-        else:
-            with open(out_name, "a") as f:
-                for _ in page:
-                    f.write(str(_) + '\n')
+        with open(out_name, "a") as f:
+            for _ in page:
+                f.write(str(_) + '\n')
 
         if len(page) % 5000 == 0:
             print("5000 IDs requested. Sleeping for {} seconds...".format(
                 sec_sleep))
             time.sleep(sec_sleep)
 
-    return IDs
 
-
-def userBlock(api, users):
+def userBlock(api, users, blocked_fname):
     """
     Block all users in 'users' list
     """
@@ -95,22 +102,24 @@ def userBlock(api, users):
     Nt = len(users)
     start = time.time()
 
-    for i, user in enumerate(users):
-        try:
-            api.create_block(user)
-        except tweepy.TweepError:
-            print("Error: {}".format(user))
-            continue
+    with open(blocked_fname, "a") as f:
+        for i, user in enumerate(users):
+            try:
+                api.create_block(user)
+                f.write(str(user) + '\n')
+            except tweepy.TweepError:
+                # print("Error: {}".format(user))
+                continue
 
-        if i % int(Nt / 1000) == 0:
-            # time used so far
-            tt = time.time() - start
-            # estimation of total time
-            t_tot = Nt * tt / (i + 1)
-            # estimation of time remaining
-            t_rem = t_tot - tt
-            print("Blocked: {} ({:.2f}%) | Remaining: {:.1f} min".format(
-                i, 100 * i / Nt, t_rem / 60.))
+            if i % int(Nt / 1000) == 0:
+                # time used so far
+                tt = time.time() - start
+                # estimation of total time
+                t_tot = Nt * tt / (i + 1)
+                # estimation of time remaining
+                t_rem = t_tot - tt
+                txt = "Blocked: {} ({:.2f}%) | Time remaining: {:.1f} min"
+                print(txt.format(i, 100 * i / Nt, t_rem / 60.))
 
 
 if __name__ == '__main__':
