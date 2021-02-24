@@ -22,8 +22,26 @@ def main():
     api, accountvar = APIAccount()
     print("\nAccount whose followers to block: '{}'".format(accountvar))
 
-    # Fetch accounts already blocked by the issuing account (to speed up the
-    # process)
+    # Read manually white-listed IDs
+    try:
+        with open("whitelist.txt", "r") as f:
+            whitelistIDs = f.read().split()
+        whitelistIDs = [int(_) for _ in whitelistIDs]
+    except FileNotFoundError:
+        whitelistIDs = []
+
+    # Fetch my followers
+    followers_fname = "my_followers.txt"
+    myfollowersIDs = IDsRequest(
+        None, api.followers_ids, followers_fname, False)
+    print("{} followers of my account".format(len(myfollowersIDs)))
+
+    # Fetch accounts I follow
+    followed_fname = "my_followed.txt"
+    myfollowedIDs = IDsRequest(None, api.friends_ids, followed_fname, False)
+    print("{} accounts followed by me".format(len(myfollowedIDs)))
+
+    # Fetch accounts already blocked (to speed up the process)
     blocked_fname = "blocked_IDs.txt"
     if not isfile(blocked_fname):
         IDsRequest(None, api.blocks_ids, blocked_fname)
@@ -34,15 +52,19 @@ def main():
 
     # Request all the follower IDs for 'accountvar'
     out_name = "{}_IDs.txt".format(accountvar)
-    # If the IDs file is not present, create it
     if not isfile(out_name):
         IDsRequest(accountvar, api.followers_ids, out_name)
-    # Read IDs of followers to block
     with open(out_name, "r") as f:
         followerids = f.read().split()
     followerids = [int(_) for _ in followerids]
     print("{} IDs requested".format(len(followerids)))
 
+    # Remove whitelisted IDs
+    followerids = list(set(followerids) - set(whitelistIDs))
+    # Remove accounts that I follow or that follow me
+    followerids = list(set(followerids) - set(myfollowersIDs))
+    followerids = list(set(followerids) - set(myfollowedIDs))
+    print("{} non whitelist or follow accounts".format(len(followerids)))
     # Remove accounts that were already blocked
     followerids = list(set(followerids) - set(blockedIDs))
     print("{} non-blocked accounts".format(len(followerids)))
@@ -71,27 +93,33 @@ def APIAccount():
         auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
 
     # Passed as argument
-    accountvar = sys.argv[1]
+    accountvar = sys.argv[1].lower()
 
     return api, accountvar
 
 
-def IDsRequest(accountvar, api_call, out_name, sec_sleep=60):
+def IDsRequest(accountvar, api_call, out_name, write=True, sec_sleep=60):
     """
     Store blocked accounts from the issuing account or follower ids from
     'accountvar'.
     """
     print("Requesting IDs...")
+    listIDs = []
     for page in tweepy.Cursor(
             api_call, screen_name=accountvar).pages():
-        with open(out_name, "a") as f:
-            for _ in page:
-                f.write(str(_) + '\n')
+        if write:
+            with open(out_name, "a") as f:
+                for _ in page:
+                    f.write(str(_) + '\n')
+        else:
+            listIDs += [int(_) for _ in page]
 
         if len(page) % 5000 == 0:
             print("5000 IDs requested. Sleeping for {} seconds...".format(
                 sec_sleep))
             time.sleep(sec_sleep)
+
+    return listIDs
 
 
 def userBlock(api, users, blocked_fname):
@@ -102,6 +130,8 @@ def userBlock(api, users, blocked_fname):
     Nt = len(users)
     start = time.time()
 
+    j, _5perc = 0, (5. * Nt) / 100.
+
     with open(blocked_fname, "a") as f:
         for i, user in enumerate(users):
             try:
@@ -111,7 +141,8 @@ def userBlock(api, users, blocked_fname):
                 # print("Error: {}".format(user))
                 continue
 
-            if i % int(Nt / 1000) == 0:
+            if i > _5perc * j:
+                j += 1
                 # time used so far
                 tt = time.time() - start
                 # estimation of total time

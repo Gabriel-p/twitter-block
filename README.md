@@ -1,6 +1,6 @@
 # twitter-block
 
-Block all followers of a given Twitter account
+Blocks all the followers of a given Twitter account
 
 Usage:
 
@@ -9,16 +9,15 @@ Usage:
 The script expect the keys and tokens in a separate 'KEY_TOKEN.txt' file.
 Requires the [Tweepy](https://www.tweepy.org/) library.
 
-The process is divided into 4 steps:
+The process is divided into four steps:
 
 1. Download IDs already blocked by the issuing account
 2. Download IDs for 'AccountName' (the one whose followers we are blocking)
-   Creates the "AccountName_IDs.txt" file (for account 'AccountName')
-3. Remove IDs for those accounts that were already blocked
-4. Block remaining accounts
+3. Remove IDs for accounts that were already blocked, or that I follow, or that follow me, or accounts that were manually white-listed
+4. Block the remaining accounts
 
-* The IDs are downloaded 5000 per minute (~80-90 accounts/sec).
-* The bocking step is the slowest (~2 accounts/sec). Thus the script
-allows to stop the process at any time and re-start it later on using the
-file generated. If you want to run the process from scratch, just
-delete this file.
+* The IDs are downloaded in blocks of 5000 per minute (~80-90 accounts/sec).
+* The blocking step is the slowest (~2 accounts/sec). The script
+allows to stop the process at any time and re-start it later on, using the
+files that were generated. If you want to run the process from scratch, just
+delete these files.
